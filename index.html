@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manga Illusion Studio</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+            color: #fff;
+            min-height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            gap: 15px;
+            padding: 15px;
+        }
+
+        .left-panel {
+            width: 380px;
+            background: rgba(30, 27, 75, 0.9);
+            border-radius: 12px;
+            padding: 15px;
+            overflow-y: auto;
+            border: 1px solid rgba(236, 72, 153, 0.3);
+        }
+
+        .header h1 {
+            font-size: 22px;
+            background: linear-gradient(135deg, #ec4899, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+        }
+
+        .header p { font-size: 11px; opacity: 0.7; margin-bottom: 15px; }
+
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #ec4899, #8b5cf6);
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .section {
+            margin-bottom: 15px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .section-title {
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: #ec4899;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 100px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 10px;
+            color: #fff;
+            font-size: 13px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .asset-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .asset-item {
+            aspect-ratio: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            cursor: grab;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            transition: all 0.3s;
+            padding: 5px;
+            text-align: center;
+        }
+
+        .asset-item:hover {
+            border-color: #ec4899;
+            transform: scale(1.05);
+        }
+
+        .asset-item .emoji {
+            font-size: 24px;
+            margin-bottom: 3px;
+        }
+
+        .asset-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(135deg, #ec4899, #8b5cf6);
+            border: none;
+            border-radius: 6px;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 13px;
+            margin-top: 8px;
+            transition: all 0.3s;
+        }
+
+        .btn:hover { transform: translateY(-2px); }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-upload {
+            background: linear-gradient(135deg, #06b6d4, #3b82f6);
+            margin-bottom: 5px;
+            font-size: 11px;
+            padding: 8px;
+        }
+
+        .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .tool-btn {
+            padding: 8px 14px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .tool-btn.active {
+            background: linear-gradient(135deg, #ec4899, #8b5cf6);
+        }
+
+        .canvas-wrapper {
+            flex: 1;
+            background: #2a2a2a;
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: auto;
+        }
+
+        #comicCanvas {
+            background: #ffffff;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            cursor: crosshair;
+        }
+
+        .file-input { display: none; }
+
+        .upload-section {
+            background: rgba(6, 182, 212, 0.1);
+            border: 2px dashed rgba(6, 182, 212, 0.5);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        .upload-section h3 {
+            color: #06b6d4;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .stats {
+            display: flex;
+            gap: 10px;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 10px;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #06b6d4, #3b82f6);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 10000;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(400px); }
+            to { transform: translateX(0); }
+        }
+
+        .form-group { margin-bottom: 10px; }
+        .form-group label { display: block; margin-bottom: 4px; font-size: 12px; color: rgba(255,255,255,0.8); }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: #fff;
+            font-size: 13px;
+        }
+
+        .layout-options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .layout-option {
+            aspect-ratio: 3/4;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            cursor: pointer;
+            padding: 6px;
+            transition: all 0.3s;
+        }
+
+        .layout-option.active {
+            border-color: #ec4899;
+            background: rgba(236, 72, 153, 0.1);
+        }
+
+        .layout-preview {
+            width: 100%;
+            height: 100%;
+            display: grid;
+            gap: 3px;
+        }
+
+        .layout-preview div {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="left-panel">
+            <div class="header">
+                <h1>✨ Manga Illusion Studio</h1>
+                <p>Crea tu mundo - Tus assets, tu historia</p>
+            </div>
+
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('story', event)">📝 Historia</div>
+                <div class="tab" onclick="switchTab('assets', event)">🎨 Assets</div>
+                <div class="tab" onclick="switchTab('layout', event)">📐 Layout</div>
+                <div class="tab" onclick="switchTab('text', event)">💬 Texto</div>
+            </div>
+
+            <div id="tab-story" class="tab-content active">
+                <div class="section">
+                    <div class="section-title">📖 Guion</div>
+                    <textarea id="storyScript" placeholder="Escribe tu historia..."></textarea>
+                    <button class="btn" onclick="analyzeStory()">🤖 Analizar con IA</button>
+                    <div id="aiResults" style="display:none; margin-top:10px; padding:10px; background:rgba(0,0,0,0.25); border-radius:6px; font-size:12px; line-height:1.5; white-space:pre-wrap;"></div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">🎭 Personajes (arrastra al canvas)</div>
+                    <div class="asset-grid" id="characterAssets"></div>
+                </div>
+            </div>
+
+            <div id="tab-assets" class="tab-content">
+                <div class="upload-section">
+                    <h3>📤 Cargar Assets Locales</h3>
+                    <button class="btn btn-upload" onclick="document.getElementById('charUpload').click()">🎭 Subir Personajes</button>
+                    <button class="btn btn-upload" onclick="document.getElementById('bgUpload').click()">🌄 Subir Fondos</button>
+                    <button class="btn btn-upload" onclick="document.getElementById('effUpload').click()">💥 Subir Efectos</button>
+                    <input type="file" id="charUpload" class="file-input" accept="image/*" multiple onchange="handleUpload(event, 'character')">
+                    <input type="file" id="bgUpload" class="file-input" accept="image/*" multiple onchange="handleUpload(event, 'background')">
+                    <input type="file" id="effUpload" class="file-input" accept="image/*" multiple onchange="handleUpload(event, 'effect')">
+                </div>
+
+                <div class="section">
+                    <div class="section-title">🌄 Fondos (click para aplicar)</div>
+                    <div class="asset-grid" id="backgroundAssets"></div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">💥 Efectos (arrastra al canvas)</div>
+                    <div class="asset-grid" id="effectAssets"></div>
+                </div>
+            </div>
+
+            <div id="tab-layout" class="tab-content">
+                <div class="section">
+                    <div class="section-title">📐 Plantillas</div>
+                    <div class="layout-options">
+                        <div class="layout-option active" onclick="selectLayout(1)">
+                            <div class="layout-preview" style="grid-template-columns: 1fr;"><div></div></div>
+                        </div>
+                        <div class="layout-option" onclick="selectLayout(2)">
+                            <div class="layout-preview" style="grid-template-columns: 1fr 1fr;"><div></div><div></div></div>
+                        </div>
+                        <div class="layout-option" onclick="selectLayout(3)">
+                            <div class="layout-preview" style="grid-template-columns: 1fr 1fr 1fr;"><div></div><div></div><div></div></div>
+                        </div>
+                        <div class="layout-option" onclick="selectLayout(4)">
+                            <div class="layout-preview" style="grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;"><div></div><div></div><div></div><div></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-text" class="tab-content">
+                <div class="section">
+                    <div class="section-title">💬 Agregar Bocadillo</div>
+                    <div class="form-group">
+                        <label>Texto</label>
+                        <textarea id="bubbleText" placeholder="Escribe el diálogo..." style="min-height: 60px;"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Tipo</label>
+                        <select id="bubbleType">
+                            <option value="speech">Diálogo</option>
+                            <option value="thought">Pensamiento</option>
+                            <option value="shout">Grito</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Tamaño: <span id="fontSizeVal">20</span>px</label>
+                        <input type="range" id="fontSize" min="12" max="48" value="20" oninput="document.getElementById('fontSizeVal').textContent = this.value">
+                    </div>
+                    <button class="btn" onclick="addBubble()">Agregar Bocadillo</button>
+                </div>
+            </div>
+
+            <button class="btn" onclick="exportPDF()">💾 Exportar PDF</button>
+            <button class="btn btn-secondary" onclick="clearAll()">🗑️ Limpiar</button>
+
+            <div class="stats">
+                <span> <span id="pageCount">1</span> páginas</span>
+                <span> <span id="elemCount">0</span> elementos</span>
+                <span> <span id="localCount">0</span> locales</span>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="toolbar">
+                <button class="tool-btn active" onclick="setTool('select', event)">🖱️ Seleccionar/Mover</button>
+                <button class="tool-btn" onclick="prevPage()">◀ Anterior</button>
+                <span id="pageIndicator" style="padding:8px 10px;font-size:12px;opacity:0.8;">Página 1/1</span>
+                <button class="tool-btn" onclick="nextPage()">Siguiente ▶</button>
+                <button class="tool-btn" onclick="addPage()">📄 Nueva Página</button>
+                <button class="tool-btn" onclick="undo()">↩️ Deshacer</button>
+            </div>
+
+            <div class="canvas-wrapper">
+                <canvas id="comicCanvas" width="800" height="1000"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('comicCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let elements = [];
+        let currentLayout = 1;
+        let currentTool = 'select';
+        let selectedElement = null;
+        let backgroundImage = null;
+        let localAssets = 0;
+        let pages = [{ elements: [], layout: 1, background: null, story: '' }];
+        let currentPage = 0;
+
+        // Arrastre de elementos en el canvas
+        let isDragging = false;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
+
+        // Redimensionar el elemento seleccionado desde su esquina
+        let isResizing = false;
+        let resizeStartX = 0, resizeStartY = 0, resizeStartW = 0, resizeStartH = 0;
+        const RESIZE_HANDLE_SIZE = 16;
+
+        // Cache de imágenes: evita que el fondo se dibuje encima de los personajes
+        // por una carrera de async (bug del fondo tapando todo)
+        const imageCache = {};
+        function getCachedImage(src) {
+            if (!src) return null;
+            if (imageCache[src] && imageCache[src].loaded) return imageCache[src].img;
+            if (!imageCache[src]) {
+                const img = new Image();
+                imageCache[src] = { img, loaded: false };
+                img.onload = () => {
+                    imageCache[src].loaded = true;
+                    drawCanvas(); // repinta todo ya con la imagen lista, en orden correcto
+                };
+                img.src = src;
+            }
+            return null; // aún cargando, este frame no la dibuja (se repintará sola)
+        }
+
+        const assets = {
+            characters: [
+                { id: 'c1', name: 'Héroe', emoji: '🦸', color: '#4ade80' },
+                { id: 'c2', name: 'Heroína', emoji: '👸', color: '#f472b6' },
+                { id: 'c3', name: 'Villano', emoji: '🦹', color: '#7c3aed' },
+                { id: 'c4', name: 'Mago', emoji: '🧙', color: '#fbbf24' },
+                { id: 'c5', name: 'Ninja', emoji: '🥷', color: '#1f2937' },
+                { id: 'c6', name: 'Cyborg', emoji: '🤖', color: '#06b6d4' }
+            ],
+            backgrounds: [
+                { id: 'b1', name: 'Aula', color: '#fef3c7' },
+                { id: 'b2', name: 'Ciudad', color: '#1e1b4b' },
+                { id: 'b3', name: 'Bosque', color: '#d1fae5' },
+                { id: 'b4', name: 'Castillo', color: '#e5e7eb' },
+                { id: 'b5', name: 'Espacio', color: '#0f172a' },
+                { id: 'b6', name: 'Playa', color: '#bfdbfe' }
+            ],
+            effects: [
+                { id: 'e1', name: 'POW', text: 'POW', color: '#ef4444' },
+                { id: 'e2', name: 'BOOM', text: 'BOOM', color: '#f97316' },
+                { id: 'e3', name: 'BAM', text: 'BAM', color: '#eab308' },
+                { id: 'e4', name: 'ZAP', text: 'ZAP', color: '#3b82f6' }
+            ]
+        };
+
+        function init() {
+            renderAssets();
+            drawCanvas();
+            setupDragDrop();
+            document.getElementById('pageIndicator').textContent = `Página 1/${pages.length}`;
+        }
+
+        function renderAssets() {
+            const charContainer = document.getElementById('characterAssets');
+            charContainer.innerHTML = '';
+            assets.characters.forEach(char => {
+                const div = document.createElement('div');
+                div.className = 'asset-item';
+                div.draggable = true;
+                div.innerHTML = `<div class="emoji">${char.emoji}</div><div>${char.name}</div>`;
+                div.ondragstart = (e) => {
+                    e.dataTransfer.setData('type', 'character');
+                    e.dataTransfer.setData('data', JSON.stringify(char));
+                };
+                charContainer.appendChild(div);
+            });
+
+            const bgContainer = document.getElementById('backgroundAssets');
+            bgContainer.innerHTML = '';
+            assets.backgrounds.forEach(bg => {
+                const div = document.createElement('div');
+                div.className = 'asset-item';
+                div.style.background = bg.color;
+                div.innerHTML = `<div>${bg.name}</div>`;
+                div.onclick = () => setBackground(bg);
+                bgContainer.appendChild(div);
+            });
+
+            const effContainer = document.getElementById('effectAssets');
+            effContainer.innerHTML = '';
+            assets.effects.forEach(eff => {
+                const div = document.createElement('div');
+                div.className = 'asset-item';
+                div.style.background = eff.color;
+                div.draggable = true;
+                div.innerHTML = `<div style="color:white;font-weight:bold;">${eff.text}</div>`;
+                div.ondragstart = (e) => {
+                    e.dataTransfer.setData('type', 'effect');
+                    e.dataTransfer.setData('data', JSON.stringify(eff));
+                };
+                effContainer.appendChild(div);
+            });
+        }
+
+        function setupDragDrop() {
+            canvas.ondragover = (e) => e.preventDefault();
+            canvas.ondrop = (e) => {
+                e.preventDefault();
+                const type = e.dataTransfer.getData('type');
+                const data = JSON.parse(e.dataTransfer.getData('data'));
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left - 50;
+                const y = e.clientY - rect.top - 50;
+
+                if (type === 'character') {
+                    elements.push({ type: 'character', data, x, y, width: 100, height: 100 });
+                    notify('✅ Personaje agregado');
+                } else if (type === 'effect') {
+                    elements.push({ type: 'effect', data, x, y, width: 120, height: 80 });
+                    notify('✅ Efecto agregado');
+                }
+                drawCanvas();
+                updateStats();
+            };
+        }
+
+        function drawCanvas() {
+            // Fondo blanco
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Fondo de escena
+            if (backgroundImage) {
+                if (backgroundImage.src) {
+                    const img = getCachedImage(backgroundImage.src);
+                    if (img) ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    // si img es null, la imagen sigue cargando; drawCanvas() se
+                    // vuelve a llamar solo cuando termine, así que no hay carrera
+                } else {
+                    ctx.fillStyle = backgroundImage.color;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                }
+            }
+
+            // Paneles
+            drawPanels();
+
+            // Elementos
+            elements.forEach(el => {
+                if (el.type === 'character') drawCharacter(el);
+                else if (el.type === 'effect') drawEffect(el);
+                else if (el.type === 'bubble') drawBubble(el);
+            });
+
+            // Selección
+            if (selectedElement) {
+                ctx.strokeStyle = '#ec4899';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([5, 5]);
+                ctx.strokeRect(selectedElement.x - 3, selectedElement.y - 3, 
+                             selectedElement.width + 6, selectedElement.height + 6);
+                ctx.setLineDash([]);
+
+                // Handle de resize (esquina inferior derecha)
+                ctx.fillStyle = '#ec4899';
+                ctx.fillRect(
+                    selectedElement.x + selectedElement.width - RESIZE_HANDLE_SIZE / 2,
+                    selectedElement.y + selectedElement.height - RESIZE_HANDLE_SIZE / 2,
+                    RESIZE_HANDLE_SIZE, RESIZE_HANDLE_SIZE
+                );
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(
+                    selectedElement.x + selectedElement.width - RESIZE_HANDLE_SIZE / 2,
+                    selectedElement.y + selectedElement.height - RESIZE_HANDLE_SIZE / 2,
+                    RESIZE_HANDLE_SIZE, RESIZE_HANDLE_SIZE
+                );
+            }
+        }
+
+        function drawPanels() {
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 4;
+            const pad = 30;
+            const gap = 15;
+
+            if (currentLayout === 1) {
+                ctx.strokeRect(pad, pad, canvas.width - pad*2, canvas.height - pad*2);
+            } else if (currentLayout === 2) {
+                const w = (canvas.width - pad*2 - gap) / 2;
+                ctx.strokeRect(pad, pad, w, canvas.height - pad*2);
+                ctx.strokeRect(pad + w + gap, pad, w, canvas.height - pad*2);
+            } else if (currentLayout === 3) {
+                const w = (canvas.width - pad*2 - gap*2) / 3;
+                for (let i = 0; i < 3; i++) {
+                    ctx.strokeRect(pad + i*(w + gap), pad, w, canvas.height - pad*2);
+                }
+            } else if (currentLayout === 4) {
+                const w = (canvas.width - pad*2 - gap) / 2;
+                const h = (canvas.height - pad*2 - gap) / 2;
+                for (let i = 0; i < 2; i++) {
+                    for (let j = 0; j < 2; j++) {
+                        ctx.strokeRect(pad + i*(w + gap), pad + j*(h + gap), w, h);
+                    }
+                }
+            }
+        }
+
+        function drawCharacter(el) {
+            if (el.data.src) {
+                const img = getCachedImage(el.data.src);
+                if (img) ctx.drawImage(img, el.x, el.y, el.width, el.height);
+            } else {
+                // Dibujar emoji
+                ctx.font = '60px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(el.data.emoji, el.x + el.width/2, el.y + el.height/2);
+                
+                // Nombre
+                ctx.font = 'bold 12px Arial';
+                ctx.fillStyle = '#000';
+                ctx.fillText(el.data.name, el.x + el.width/2, el.y + el.height - 10);
+            }
+        }
+
+        function drawEffect(el) {
+            if (el.data.src) {
+                const img = getCachedImage(el.data.src);
+                if (img) ctx.drawImage(img, el.x, el.y, el.width, el.height);
+            } else {
+                ctx.fillStyle = el.data.color;
+                ctx.font = 'bold 36px Impact';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 4;
+                ctx.strokeText(el.data.text, el.x + el.width/2, el.y + el.height/2);
+                ctx.fillText(el.data.text, el.x + el.width/2, el.y + el.height/2);
+            }
+        }
+
+        function drawBubble(el) {
+            // Fondo blanco
+            ctx.fillStyle = '#ffffff';
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 3;
+            
+            ctx.beginPath();
+            ctx.roundRect(el.x, el.y, el.width, el.height, 15);
+            ctx.fill();
+            ctx.stroke();
+
+            // Texto
+            ctx.fillStyle = el.textColor || '#000000';
+            ctx.font = `bold ${el.fontSize || 20}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            const words = el.text.split(' ');
+            let line = '';
+            let y = el.y + el.height/2 - 10;
+            const lineHeight = el.fontSize * 1.2;
+            
+            for (let i = 0; i < words.length; i++) {
+                const testLine = line + words[i] + ' ';
+                if (ctx.measureText(testLine).width > el.width - 20 && i > 0) {
+                    ctx.fillText(line, el.x + el.width/2, y);
+                    line = words[i] + ' ';
+                    y += lineHeight;
+                } else {
+                    line = testLine;
+                }
+            }
+            ctx.fillText(line, el.x + el.width/2, y);
+        }
+
+        function setBackground(bg) {
+            backgroundImage = bg.src ? { src: bg.src } : { color: bg.color };
+            drawCanvas();
+            notify('🌄 Fondo aplicado');
+        }
+
+        function handleUpload(event, type) {
+            const files = event.target.files;
+            if (files.length === 0) return;
+
+            Array.from(files).forEach(file => {
+                if (!file.type.match('image.*')) {
+                    alert('Solo imágenes (PNG, JPG, WEBP)');
+                    return;
+                }
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('Máximo 10MB');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const asset = {
+                        id: 'local_' + Date.now(),
+                        name: file.name.replace(/\.[^/.]+$/, ''),
+                        src: e.target.result,
+                        emoji: '📷'
+                    };
+
+                    if (type === 'character') assets.characters.push(asset);
+                    else if (type === 'background') assets.backgrounds.push(asset);
+                    else if (type === 'effect') assets.effects.push(asset);
+
+                    localAssets++;
+                    renderAssets();
+                    updateStats();
+                };
+                reader.readAsDataURL(file);
+            });
+
+            notify(`✅ ${files.length} asset(s) cargado(s)`);
+            event.target.value = '';
+        }
+
+        function addBubble() {
+            const text = document.getElementById('bubbleText').value;
+            if (!text.trim()) { alert('Escribe un texto'); return; }
+
+            const fontSize = parseInt(document.getElementById('fontSize').value) || 20;
+            const width = 250, height = 100;
+
+            // Cascada: cada bocadillo nuevo se desplaza un poco para que NO
+            // quede apilado exacto encima de los anteriores (ese era el bug:
+            // parecía que "no aparecían" o "no se movían" porque en realidad
+            // había varios bocadillos idénticos, uno arriba del otro, en el mismo x,y)
+            const bubbleCount = elements.filter(e => e.type === 'bubble').length;
+            const offset = (bubbleCount % 6) * 35;
+
+            const newBubble = {
+                type: 'bubble',
+                text: text,
+                x: 90 + offset,
+                y: 90 + offset,
+                width,
+                height,
+                fontSize,
+                textColor: '#000000'
+            };
+
+            elements.push(newBubble);
+            selectedElement = newBubble; // queda seleccionado, listo pa arrastrarlo a su lugar
+
+            document.getElementById('bubbleText').value = '';
+            drawCanvas();
+            updateStats();
+            notify('💬 Bocadillo agregado — arrástralo a su lugar');
+        }
+
+        function selectLayout(num) {
+            currentLayout = num;
+            document.querySelectorAll('.layout-option').forEach((opt, idx) => {
+                opt.classList.toggle('active', idx + 1 === num);
+            });
+            drawCanvas();
+        }
+
+        function setTool(tool, evt) {
+            currentTool = tool;
+            document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+            if (evt && evt.target) evt.target.classList.add('active');
+        }
+
+        function switchTab(tab, evt) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-' + tab).classList.add('active');
+            if (evt && evt.target) evt.target.classList.add('active');
+        }
+
+        // Guarda todo el estado actual (historia incluida) en pages[idx]
+        function savePageState(idx) {
+            pages[idx] = {
+                elements: elements,
+                layout: currentLayout,
+                background: backgroundImage,
+                story: document.getElementById('storyScript').value
+            };
+        }
+
+        // Carga el estado de pages[idx] hacia el canvas y el textarea
+        function loadPageState(idx) {
+            const page = pages[idx];
+            elements = page.elements;
+            currentLayout = page.layout;
+            backgroundImage = page.background;
+            selectedElement = null;
+            document.getElementById('storyScript').value = page.story || '';
+            document.querySelectorAll('.layout-option').forEach((opt, i) => {
+                opt.classList.toggle('active', i + 1 === currentLayout);
+            });
+            currentPage = idx;
+            document.getElementById('pageIndicator').textContent = `Página ${currentPage + 1}/${pages.length}`;
+            drawCanvas();
+            updateStats();
+        }
+
+        function addPage() {
+            savePageState(currentPage);
+            pages.push({ elements: [], layout: currentLayout, background: null, story: '' });
+            loadPageState(pages.length - 1);
+            notify(`📄 Página ${currentPage + 1} creada`);
+        }
+
+        function prevPage() {
+            if (currentPage === 0) { notify('⚠️ Ya estás en la primera página'); return; }
+            savePageState(currentPage);
+            loadPageState(currentPage - 1);
+            notify(`◀ Página ${currentPage + 1}`);
+        }
+
+        function nextPage() {
+            if (currentPage >= pages.length - 1) { notify('⚠️ Ya estás en la última página'); return; }
+            savePageState(currentPage);
+            loadPageState(currentPage + 1);
+            notify(`▶ Página ${currentPage + 1}`);
+        }
+
+        function undo() {
+            if (elements.length > 0) {
+                elements.pop();
+                drawCanvas();
+                updateStats();
+                notify('↩️ Deshecho');
+            }
+        }
+
+        function clearAll() {
+            if (confirm('¿Limpiar todo?')) {
+                elements = [];
+                backgroundImage = null;
+                drawCanvas();
+                updateStats();
+                notify('🗑️ Limpiado');
+            }
+        }
+
+        function preloadImageSrc(src) {
+            if (!src) return Promise.resolve();
+            if (imageCache[src] && imageCache[src].loaded) return Promise.resolve();
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => { imageCache[src] = { img, loaded: true }; resolve(); };
+                img.onerror = () => resolve(); // no tumbar el export por una imagen rota
+                img.src = src;
+            });
+        }
+
+        async function exportPDF() {
+            savePageState(currentPage);
+
+            // Precargar todas las imágenes de todas las páginas para que no
+            // se exporten en blanco por la carga asíncrona
+            const srcs = new Set();
+            pages.forEach(page => {
+                if (page.background && page.background.src) srcs.add(page.background.src);
+                page.elements.forEach(el => { if (el.data && el.data.src) srcs.add(el.data.src); });
+            });
+            await Promise.all([...srcs].map(preloadImageSrc));
+
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'a4');
+
+            pages.forEach((page, i) => {
+                if (i > 0) pdf.addPage();
+
+                elements = page.elements;
+                backgroundImage = page.background;
+                currentLayout = page.layout;
+                drawCanvas();
+
+                const imgData = canvas.toDataURL('image/jpeg', 0.9);
+                pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+            });
+
+            pdf.save('manga_illusion.pdf');
+            loadPageState(currentPage); // restaurar la página en la que estabas
+            notify('✅ PDF exportado');
+        }
+
+        async function analyzeStory() {
+            const story = document.getElementById('storyScript').value;
+            if (!story.trim()) { alert('Escribe una historia primero'); return; }
+
+            const resultsBox = document.getElementById('aiResults');
+            resultsBox.style.display = 'block';
+            resultsBox.textContent = 'Analizando...';
+            notify('🤖 Analizando...');
+
+            const prompt = `Eres un editor de manga. Analiza este guion y da 3-5 sugerencias cortas y concretas (viñetas, cada una en una línea empezando con "💡"). Guion:\n\n${story}`;
+
+            try {
+                // Intenta usar Ollama local (kawai, puerto 11434). Ajusta la URL si
+                // sirves esta página desde otro host y tienes OLLAMA_ORIGINS configurado.
+                const res = await fetch('http://localhost:11434/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ model: 'qwen3.5:9b', prompt, stream: false })
+                });
+                if (!res.ok) throw new Error('Ollama respondió ' + res.status);
+                const data = await res.json();
+                resultsBox.textContent = (data.response || '').trim() || heuristicAnalysis(story);
+                notify('✅ Análisis completado (Ollama)');
+            } catch (err) {
+                // Ollama no disponible: análisis heurístico real, no texto genérico
+                resultsBox.textContent = heuristicAnalysis(story) +
+                    '\n\n⚠️ No se pudo conectar a Ollama (localhost:11434). Corriendo análisis local básico.';
+                notify('⚠️ Ollama no disponible, usando análisis local');
+            }
+        }
+
+        function heuristicAnalysis(story) {
+            const lines = story.split('\n').filter(l => l.trim());
+            const words = story.trim().split(/\s+/).filter(Boolean);
+            const dialogLines = lines.filter(l => /^[-—"]/.test(l.trim()));
+            const tips = [];
+
+            tips.push(`💡 Guion: ${words.length} palabras, ${lines.length} líneas, ${dialogLines.length} de diálogo.`);
+            if (dialogLines.length === 0) tips.push('💡 No detecté diálogos (líneas con "-" o comillas). Agrega diálogo para dar vida a los personajes.');
+            if (words.length < 40) tips.push('💡 El guion es muy corto para varias páginas; desarrolla más la escena.');
+            if (pages.length < 2) tips.push('💡 Solo tienes 1 página creada; usa "Nueva Página" para dividir la historia en escenas.');
+            const usedEffects = elements.filter(e => e.type === 'effect').length;
+            if (usedEffects === 0) tips.push('💡 No hay efectos (POW, BOOM) en esta página; agrega uno si hay acción.');
+            tips.push(`💡 Layout actual: ${currentLayout} panel(es). Para escenas de acción prueba el layout de 4.`);
+
+            return tips.join('\n');
+        }
+
+        function updateStats() {
+            document.getElementById('pageCount').textContent = pages.length;
+            document.getElementById('elemCount').textContent = elements.length;
+            document.getElementById('localCount').textContent = localAssets;
+        }
+
+        function notify(msg) {
+            const existing = document.querySelector('.notification');
+            if (existing) existing.remove();
+
+            const notif = document.createElement('div');
+            notif.className = 'notification';
+            notif.textContent = msg;
+            document.body.appendChild(notif);
+            setTimeout(() => notif.remove(), 3000);
+        }
+
+        // Seleccionar Y arrastrar elementos con el mouse
+        function getElementAt(x, y) {
+            for (let i = elements.length - 1; i >= 0; i--) {
+                const el = elements[i];
+                if (x >= el.x && x <= el.x + el.width && y >= el.y && y <= el.y + el.height) {
+                    return el;
+                }
+            }
+            return null;
+        }
+
+        function canvasPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+        }
+
+        function isOnResizeHandle(x, y) {
+            if (!selectedElement) return false;
+            const hx = selectedElement.x + selectedElement.width;
+            const hy = selectedElement.y + selectedElement.height;
+            const half = RESIZE_HANDLE_SIZE;
+            return x >= hx - half && x <= hx + half && y >= hy - half && y <= hy + half;
+        }
+
+        canvas.onmousedown = (e) => {
+            const { x, y } = canvasPos(e);
+
+            if (isOnResizeHandle(x, y)) {
+                isResizing = true;
+                resizeStartX = x;
+                resizeStartY = y;
+                resizeStartW = selectedElement.width;
+                resizeStartH = selectedElement.height;
+                canvas.style.cursor = 'nwse-resize';
+                return;
+            }
+
+            const el = getElementAt(x, y);
+            selectedElement = el;
+            if (el) {
+                isDragging = true;
+                dragOffsetX = x - el.x;
+                dragOffsetY = y - el.y;
+                canvas.style.cursor = 'grabbing';
+            }
+            drawCanvas();
+        };
+
+        canvas.onmousemove = (e) => {
+            const { x, y } = canvasPos(e);
+
+            if (isResizing && selectedElement) {
+                const dx = x - resizeStartX;
+                const dy = y - resizeStartY;
+                selectedElement.width = Math.max(30, resizeStartW + dx);
+                selectedElement.height = Math.max(30, resizeStartH + dy);
+                drawCanvas();
+                return;
+            }
+
+            if (isDragging && selectedElement) {
+                selectedElement.x = x - dragOffsetX;
+                selectedElement.y = y - dragOffsetY;
+                drawCanvas();
+                return;
+            }
+
+            // Solo cambia el cursor si está sobre el handle, sin arrastrar nada
+            canvas.style.cursor = isOnResizeHandle(x, y) ? 'nwse-resize' : 'crosshair';
+        };
+
+        canvas.onmouseup = () => {
+            isDragging = false;
+            isResizing = false;
+            canvas.style.cursor = 'crosshair';
+        };
+        canvas.onmouseleave = () => {
+            isDragging = false;
+            isResizing = false;
+            canvas.style.cursor = 'crosshair';
+        };
+
+        init();
+    </script>
+</body>
+</html>
